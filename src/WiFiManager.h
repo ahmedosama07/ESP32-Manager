@@ -8,6 +8,8 @@ typedef enum wifi_setup_stages { NONE, SCAN_START, SCAN_COMPLETE, SSID_ENTERED, 
 extern WiFiStages_t wifi_stage;
 
 extern bool bluetooth_disconnect;
+extern const char* pref_ssid;
+extern const char* pref_pass;
 
 void scan_wifi_networks(BluetoothSerial &SerialBT);
 bool init_wifi(BluetoothSerial &SerialBT, Preferences &preferences);
