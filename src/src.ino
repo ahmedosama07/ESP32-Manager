@@ -1,32 +1,36 @@
+#define THINGER_SERIAL_DEBUG
+#define THINGERIO
 #include <WiFi.h>
 #include <Preferences.h>
 #include "BluetoothSerial.h"
 #include "WiFiManager.h"
 
+#include "arduino_secrets.h"
+
 #define FORMAT 23
 
 String connected_string;
 
-
 String client_wifi_ssid;
 String client_wifi_password;
 
-const char* bluetooth_name = "ESP33";
+const char *bluetooth_name = "ESP33";
 
 
 BluetoothSerial SerialBT;
 Preferences preferences;
+ThingerESP32 thing(USERNAME, DEVICE_ID, DEVICE_CREDENTIAL);
 
-
-void setup()
-{
+void setup() {
   Serial.begin(115200);
   pinMode(FORMAT, INPUT_PULLUP);
+  pinMode(LED_BUILTIN, OUTPUT);
+
   Serial.println("Booting...");
 
   preferences.begin("wifi_access", false);
 
-  if (!init_wifi(SerialBT, preferences)) { // Connect to Wi-Fi fails
+  if (!init_wifi(thing, SerialBT, preferences)) {  // Connect to Wi-Fi fails
     SerialBT.register_callback(callback);
   } else {
     Serial.println("");
@@ -40,29 +44,26 @@ void setup()
 
 
 
-void callback(esp_spp_cb_event_t event, esp_spp_cb_param_t *param)
-{
-  
+void callback(esp_spp_cb_event_t event, esp_spp_cb_param_t *param) {
+
   if (event == ESP_SPP_SRV_OPEN_EVT) {
     wifi_stage = SCAN_START;
   }
 
-  if (event == ESP_SPP_DATA_IND_EVT && wifi_stage == SCAN_COMPLETE) { // data from phone is SSID
+  if (event == ESP_SPP_DATA_IND_EVT && wifi_stage == SCAN_COMPLETE) {  // data from phone is SSID
     int client_wifi_ssid_id = SerialBT.readString().toInt();
     client_wifi_ssid = WiFi.SSID(client_wifi_ssid_id - 1);
     wifi_stage = SSID_ENTERED;
   }
 
-  if (event == ESP_SPP_DATA_IND_EVT && wifi_stage == WAIT_PASS) { // data from phone is password
+  if (event == ESP_SPP_DATA_IND_EVT && wifi_stage == WAIT_PASS) {  // data from phone is password
     client_wifi_password = SerialBT.readString();
     client_wifi_password.trim();
     wifi_stage = PASS_ENTERED;
   }
-
 }
 
-void callback_show_ip(esp_spp_cb_event_t event, esp_spp_cb_param_t *param)
-{
+void callback_show_ip(esp_spp_cb_event_t event, esp_spp_cb_param_t *param) {
   if (event == ESP_SPP_SRV_OPEN_EVT) {
     SerialBT.print("ESP32 IP: ");
     SerialBT.println(WiFi.localIP());
@@ -72,16 +73,13 @@ void callback_show_ip(esp_spp_cb_event_t event, esp_spp_cb_param_t *param)
 }
 
 
-void loop()
-{
-  
-  if (bluetooth_disconnect)
-  {
+void loop() {
+
+  if (bluetooth_disconnect) {
     disconnect_bluetooth(SerialBT);
   }
 
-  switch (wifi_stage)
-  {
+  switch (wifi_stage) {
     case SCAN_START:
       SerialBT.println("Scanning Wi-Fi networks");
       SerialBT.flush();
@@ -106,13 +104,13 @@ void loop()
       wifi_stage = WAIT_CONNECT;
       preferences.putString("pref_ssid", client_wifi_ssid);
       preferences.putString("pref_pass", client_wifi_password);
-      if (init_wifi(SerialBT, preferences)) { // Connected to WiFi
+      if (init_wifi(thing, SerialBT, preferences)) {  // Connected to WiFi
         connected_string = "ESP32 IP: ";
         connected_string = connected_string + WiFi.localIP().toString();
         SerialBT.println(connected_string);
         Serial.println("\n" + connected_string);
         bluetooth_disconnect = true;
-      } else { // try again
+      } else {  // try again
         wifi_stage = LOGIN_FAILED;
       }
       WiFi.scanDelete();
@@ -125,10 +123,12 @@ void loop()
       wifi_stage = SCAN_START;
       break;
   }
-  
-  if(digitalRead(FORMAT)==LOW){
+
+  if (digitalRead(FORMAT) == LOW) {
     Serial.println("Resetting configuration");
     preferences.clear();
     ESP.restart();
-  } 
+  }
+
+  thing.handle();
 }
