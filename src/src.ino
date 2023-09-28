@@ -1,10 +1,11 @@
 #define THINGER_SERIAL_DEBUG
-#define THINGERIO
+#define _DISABLE_TLS_
 #include <WiFi.h>
 #include <Preferences.h>
 #include "BluetoothSerial.h"
 #include "WiFiManager.h"
 
+#include <ThingerESP32.h>
 #include "arduino_secrets.h"
 
 #define FORMAT 23
@@ -30,15 +31,21 @@ void setup() {
 
   preferences.begin("wifi_access", false);
 
-  if (!init_wifi(thing, SerialBT, preferences)) {  // Connect to Wi-Fi fails
+  if (!init_wifi(SerialBT, preferences)) {  // Connect to Wi-Fi fails
     SerialBT.register_callback(callback);
   } else {
     Serial.println("");
     Serial.print("ESP32 IP: ");
     Serial.println(WiFi.localIP());
     SerialBT.register_callback(callback_show_ip);
+    // String temp_pref_ssid = preferences.getString("pref_ssid", "");
+    // String temp_pref_pass = preferences.getString("pref_pass");
+    // pref_ssid = temp_pref_ssid.c_str();
+    // pref_pass = temp_pref_pass.c_str();
+    // WiFi.disconnect();
+    // thing.add_wifi(pref_ssid, pref_pass);
   }
-
+  thing["GPIO_LED_BUILTIN"] << digitalPin(LED_BUILTIN);
   SerialBT.begin(bluetooth_name);
 }
 
@@ -104,11 +111,18 @@ void loop() {
       wifi_stage = WAIT_CONNECT;
       preferences.putString("pref_ssid", client_wifi_ssid);
       preferences.putString("pref_pass", client_wifi_password);
-      if (init_wifi(thing, SerialBT, preferences)) {  // Connected to WiFi
+      if (init_wifi(SerialBT, preferences)) {  // Connected to WiFi
         connected_string = "ESP32 IP: ";
         connected_string = connected_string + WiFi.localIP().toString();
         SerialBT.println(connected_string);
         Serial.println("\n" + connected_string);
+        // String temp_pref_ssid = preferences.getString("pref_ssid", "");
+        // String temp_pref_pass = preferences.getString("pref_pass");
+        // pref_ssid = temp_pref_ssid.c_str();
+        // pref_pass = temp_pref_pass.c_str();
+        // WiFi.disconnect();
+        // thing.add_wifi(pref_ssid, pref_pass);
+        // thing["GPIO_LED_BUILTIN"] << digitalPin(LED_BUILTIN);
         bluetooth_disconnect = true;
       } else {  // try again
         wifi_stage = LOGIN_FAILED;

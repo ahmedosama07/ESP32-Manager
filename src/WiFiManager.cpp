@@ -9,7 +9,7 @@ long start_wifi_millis;
 long wifi_timeout = 10000;
 bool bluetooth_disconnect = false;
 
-bool init_wifi(ThingerESP32 &thing, BluetoothSerial &SerialBT, Preferences &preferences)
+bool init_wifi(BluetoothSerial &SerialBT, Preferences &preferences)
 {
   String temp_pref_ssid = preferences.getString("pref_ssid", "");
   String temp_pref_pass = preferences.getString("pref_pass");
@@ -23,12 +23,7 @@ bool init_wifi(ThingerESP32 &thing, BluetoothSerial &SerialBT, Preferences &pref
   Serial.println(pref_ssid);
 
   start_wifi_millis = millis();
-  #ifndef THINGERIO
   WiFi.begin(pref_ssid, pref_pass);
-  #else
-  thing.add_wifi(pref_ssid, pref_pass);
-  thingsAdd(thing);
-  #endif
   while (WiFi.status() != WL_CONNECTED) {
     delay(500);
     Serial.print(".");
@@ -37,7 +32,6 @@ bool init_wifi(ThingerESP32 &thing, BluetoothSerial &SerialBT, Preferences &pref
       return false;
     }
   }
-  
   return true;
 }
 
